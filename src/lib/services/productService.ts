@@ -77,12 +77,53 @@ export async function getProducts(params: GetProductsParams = {}) {
 
   const skip = (page - 1) * limit;
 
-  const [products, totalCount] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy,
-      skip,
-      take: limit,
+  if (!process.env.DATABASE_URL) {
+    return { products: [], totalCount: 0, totalPages: 0, currentPage: page };
+  }
+
+  try {
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: {
+          images: {
+            orderBy: { displayOrder: "asc" },
+          },
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+          variants: true,
+        },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return {
+      products,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
+    };
+  } catch (err) {
+    return {
+      products: [],
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: page,
+    };
+  }
+}
+
+export async function getProductBySlug(slug: string) {
+  if (!process.env.DATABASE_URL) return null;
+  try {
+    return await prisma.product.findUnique({
+      where: { slug },
       include: {
         images: {
           orderBy: { displayOrder: "asc" },
@@ -94,33 +135,10 @@ export async function getProducts(params: GetProductsParams = {}) {
         },
         variants: true,
       },
-    }),
-    prisma.product.count({ where }),
-  ]);
-
-  return {
-    products,
-    totalCount,
-    totalPages: Math.ceil(totalCount / limit),
-    currentPage: page,
-  };
-}
-
-export async function getProductBySlug(slug: string) {
-  return prisma.product.findUnique({
-    where: { slug },
-    include: {
-      images: {
-        orderBy: { displayOrder: "asc" },
-      },
-      categories: {
-        include: {
-          category: true,
-        },
-      },
-      variants: true,
-    },
-  });
+    });
+  } catch {
+    return null;
+  }
 }
 
 export async function getProductById(id: string) {
@@ -141,28 +159,38 @@ export async function getProductById(id: string) {
 }
 
 export async function getCategories() {
-  return prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: "asc" },
-    include: {
-      _count: {
-        select: {
-          products: {
-            where: {
-              product: {
-                isPublished: true,
-                isArchived: false,
+  if (!process.env.DATABASE_URL) return [];
+  try {
+    return await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: "asc" },
+      include: {
+        _count: {
+          select: {
+            products: {
+              where: {
+                product: {
+                  isPublished: true,
+                  isArchived: false,
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getCategoryBySlug(slug: string) {
-  return prisma.category.findUnique({
-    where: { slug },
-  });
+  if (!process.env.DATABASE_URL) return null;
+  try {
+    return await prisma.category.findUnique({
+      where: { slug },
+    });
+  } catch {
+    return null;
+  }
 }

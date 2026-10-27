@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-export const revalidate = 60; // ISR cache revalidation every 60s
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [productsData, categories] = await Promise.all([

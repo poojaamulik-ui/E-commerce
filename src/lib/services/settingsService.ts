@@ -11,7 +11,22 @@ export interface PublicStoreSettings {
   freeShippingThresholdPaise: number;
 }
 
+const DEFAULT_SETTINGS: PublicStoreSettings = {
+  storeName: "Nestora",
+  storeTagline: "Home • Living • Decor",
+  supportEmail: "care@nestora.com",
+  supportPhone: "+91 98765 43210",
+  businessAddress: "Indiranagar 100ft Road, Bengaluru, Karnataka 560038",
+  announcementText: "Free Shipping on Orders Above ₹999 | Easy Returns | Secure Payments",
+  maintenanceMode: false,
+  freeShippingThresholdPaise: 99900,
+};
+
 export async function getPublicStoreSettings(): Promise<PublicStoreSettings> {
+  if (!process.env.DATABASE_URL) {
+    return DEFAULT_SETTINGS;
+  }
+
   try {
     const settings = await prisma.storeSetting.findMany({
       where: { isPublic: true },
@@ -23,31 +38,20 @@ export async function getPublicStoreSettings(): Promise<PublicStoreSettings> {
     }
 
     return {
-      storeName: map.get("store_name") || "BharatBazaar",
-      storeTagline: map.get("store_tagline") || "Curated Indian Heritage & Sustainable Goods",
-      supportEmail: map.get("support_email") || "support@bharatbazaar.in",
-      supportPhone: map.get("support_phone") || "+91 98765 43210",
-      businessAddress:
-        map.get("business_address") || "Indiranagar 100ft Road, Bengaluru, Karnataka 560038",
-      announcementText:
-        map.get("announcement_text") ||
-        "✨ Festive Season Sale: Enjoy Free Shipping on all orders above ₹999 across India!",
+      storeName: map.get("store_name") || DEFAULT_SETTINGS.storeName,
+      storeTagline: map.get("store_tagline") || DEFAULT_SETTINGS.storeTagline,
+      supportEmail: map.get("support_email") || DEFAULT_SETTINGS.supportEmail,
+      supportPhone: map.get("support_phone") || DEFAULT_SETTINGS.supportPhone,
+      businessAddress: map.get("business_address") || DEFAULT_SETTINGS.businessAddress,
+      announcementText: map.get("announcement_text") || DEFAULT_SETTINGS.announcementText,
       maintenanceMode: map.get("maintenance_mode") === "true",
-      freeShippingThresholdPaise: parseInt(map.get("free_shipping_threshold") || "99900", 10),
+      freeShippingThresholdPaise: parseInt(
+        map.get("free_shipping_threshold") || String(DEFAULT_SETTINGS.freeShippingThresholdPaise),
+        10
+      ),
     };
   } catch (err) {
-    console.error("Error loading store settings from DB:", err);
-    return {
-      storeName: "BharatBazaar",
-      storeTagline: "Curated Indian Heritage & Sustainable Goods",
-      supportEmail: "support@bharatbazaar.in",
-      supportPhone: "+91 98765 43210",
-      businessAddress: "Indiranagar 100ft Road, Bengaluru, Karnataka 560038",
-      announcementText:
-        "✨ Festive Season Sale: Enjoy Free Shipping on all orders above ₹999 across India!",
-      maintenanceMode: false,
-      freeShippingThresholdPaise: 99900,
-    };
+    return DEFAULT_SETTINGS;
   }
 }
 
