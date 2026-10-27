@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-forest-900: #142E16;
+  --color-forest-800: #1E3F20;
+  --color-forest-700: #2A572D;
+  --color-forest-600: #38703B;
+  --color-forest-50: #F0F6F1;
+  --color-terracotta: #A0522D;
+  --color-terracotta-hover: #8B4513;
+  --color-terracotta-light: #FBF0E9;
+  --color-cream: #FAF7F2;
+  --color-warm-bg: #F5F1E8;
+  --color-warm-border: #E8E3DA;
+}
+
+:root {
+  --background: #FAF7F2;
+  --foreground: #1C1F1C;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Custom smooth transitions */
+button, a {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
