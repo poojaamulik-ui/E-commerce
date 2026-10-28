@@ -23,106 +23,124 @@ export async function getOrCreateCartId(): Promise<string> {
 }
 
 export async function getCart() {
-  const session = await getSession();
-  const sessionId = await getOrCreateCartId();
+  const emptyCart = {
+    id: "guest-empty",
+    items: [],
+    subtotalPaise: 0,
+    totalItemCount: 0,
+  };
 
-  // Find user cart or session cart
-  let cart = await prisma.cart.findFirst({
-    where: session?.userId
-      ? { OR: [{ userId: session.userId }, { sessionId }] }
-      : { sessionId },
-    include: {
-      items: {
+  try {
+    const session = await getSession();
+    const sessionId = await getOrCreateCartId();
+
+    // Find user cart or session cart
+    let cart = await prisma.cart.findFirst({
+      where: session?.userId
+        ? { OR: [{ userId: session.userId }, { sessionId }] }
+        : { sessionId },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                images: {
+                  where: { isPrimary: true },
+                  take: 1,
+                },
+              },
+            },
+            variant: true,
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!cart) {
+      cart = await prisma.cart.create({
+        data: {
+          userId: session?.userId || null,
+          sessionId,
+        },
         include: {
-          product: {
+          items: {
             include: {
-              images: {
-                where: { isPrimary: true },
-                take: 1,
-              },
-            },
-          },
-          variant: true,
-        },
-        orderBy: { createdAt: "asc" },
-      },
-    },
-  });
-
-  if (!cart) {
-    cart = await prisma.cart.create({
-      data: {
-        userId: session?.userId || null,
-        sessionId,
-      },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                images: {
-                  where: { isPrimary: true },
-                  take: 1,
+              product: {
+                include: {
+                  images: {
+                    where: { isPrimary: true },
+                    take: 1,
+                  },
                 },
               },
+              variant: true,
             },
-            variant: true,
+            orderBy: { createdAt: "asc" },
           },
-          orderBy: { createdAt: "asc" },
         },
-      },
-    });
-  } else if (session?.userId && !cart.userId) {
-    // Associate guest cart with user upon login
-    cart = await prisma.cart.update({
-      where: { id: cart.id },
-      data: { userId: session.userId },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                images: {
-                  where: { isPrimary: true },
-                  take: 1,
+      });
+    } else if (session?.userId && !cart.userId) {
+      // Associate guest cart with user upon login
+      cart = await prisma.cart.update({
+        where: { id: cart.id },
+        data: { userId: session.userId },
+        include: {
+          items: {
+            include: {
+              product: {
+                include: {
+                  images: {
+                    where: { isPrimary: true },
+                    take: 1,
+                  },
                 },
               },
+              variant: true,
             },
-            variant: true,
+            orderBy: { createdAt: "asc" },
           },
-          orderBy: { createdAt: "asc" },
         },
-      },
+      });
+    }
+
+    // Calculate live authoritative totals
+    let subtotalPaise = 0;
+    let totalItemCount = 0;
+
+    const enrichedItems = cart.items.map((item) => {
+      const unitPrice =
+        item.variant?.salePrice ||
+        item.variant?.price ||
+        item.product.salePrice ||
+        item.product.basePrice;
+      const lineTotal = unitPrice * item.quantity;
+      const maxAvailable = item.variant
+        ? item.variant.stockQuantity
+        : item.product.stockQuantity;
+
+      subtotalPaise += lineTotal;
+      totalItemCount += item.quantity;
+
+      return {
+        ...item,
+        effectiveUnitPrice: unitPrice,
+        lineTotal,
+        isAvailable: maxAvailable >= item.quantity,
+        maxAvailable,
+      };
     });
-  }
-
-  // Calculate live authoritative totals
-  let subtotalPaise = 0;
-  let totalItemCount = 0;
-
-  const enrichedItems = cart.items.map((item) => {
-    const unitPrice = item.variant?.salePrice || item.variant?.price || item.product.salePrice || item.product.basePrice;
-    const lineTotal = unitPrice * item.quantity;
-    const maxAvailable = item.variant ? item.variant.stockQuantity : item.product.stockQuantity;
-
-    subtotalPaise += lineTotal;
-    totalItemCount += item.quantity;
 
     return {
-      ...item,
-      effectiveUnitPrice: unitPrice,
-      lineTotal,
-      isAvailable: maxAvailable >= item.quantity,
-      maxAvailable,
+      id: cart.id,
+      items: enrichedItems,
+      subtotalPaise,
+      totalItemCount,
     };
-  });
-
-  return {
-    id: cart.id,
-    items: enrichedItems,
-    subtotalPaise,
-    totalItemCount,
-  };
+  } catch (err) {
+    console.warn("Database cart lookup error:", err instanceof Error ? err.message : err);
+    return emptyCart;
+  }
 }
 
 export async function addToCart(params: {
