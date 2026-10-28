@@ -48,4 +48,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "DB_URL=\"${DATABASE_URL:-$DATABASE_PRIVATE_URL}\"; if [ -n \"$DB_URL\" ]; then export DATABASE_URL=\"$DB_URL\"; npx prisma migrate deploy && npm run seed; else echo 'No database URL provided, skipping migrations...'; fi && npm start"]
+CMD ["sh", "-c", "DB_URL=\"${DATABASE_URL:-$DATABASE_PRIVATE_URL}\"; if [ -n \"$DB_URL\" ]; then export DATABASE_URL=\"$DB_URL\"; echo 'Configuring database with schema push and seed...'; (npx prisma db push --skip-generate || npx prisma migrate deploy || true); (npm run seed || true); else echo 'No database URL provided, using fallback catalog...'; fi && npm start"]
