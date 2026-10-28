@@ -9,6 +9,15 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { ChevronRight, Star, Heart, CheckCircle2 } from "lucide-react";
 import type { Metadata } from "next";
 
+type ProductImageItem = { id: string; url: string; altText?: string | null };
+type ProductVariantItem = {
+  id: string;
+  name: string;
+  price: number | null;
+  salePrice: number | null;
+  stockQuantity: number;
+};
+
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
@@ -85,7 +94,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
           {/* Vertical Thumbnails Stack */}
           {product.images.length > 1 && (
             <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[500px]">
-              {product.images.map((img) => (
+              {product.images.map((img: ProductImageItem) => (
                 <div
                   key={img.id}
                   className="relative h-18 w-18 shrink-0 overflow-hidden rounded-xl border-2 border-transparent hover:border-[#1E3F20] bg-white cursor-pointer shadow-xs transition"
@@ -173,7 +182,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
             productId={product.id}
             stockQuantity={product.stockQuantity}
             productName={product.name}
-            variants={product.variants.map((v) => ({
+            variants={product.variants.map((v: ProductVariantItem) => ({
               id: v.id,
               name: v.name,
               price: v.price || product.basePrice,
