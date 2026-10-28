@@ -7,6 +7,7 @@ declare global {
 
 const connectionString =
   process.env.DATABASE_URL ||
+  process.env.DATABASE_PRIVATE_URL ||
   "postgresql://postgres:postgres@localhost:5432/postgres?schema=public";
 
 export const prisma =

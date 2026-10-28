@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: PublicStoreSettings = {
 };
 
 export async function getPublicStoreSettings(): Promise<PublicStoreSettings> {
-  if (!process.env.DATABASE_URL) {
+  if (!process.env.DATABASE_URL && !process.env.DATABASE_PRIVATE_URL) {
     return DEFAULT_SETTINGS;
   }
 

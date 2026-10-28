@@ -77,7 +77,7 @@ export async function getProducts(params: GetProductsParams = {}) {
 
   const skip = (page - 1) * limit;
 
-  if (!process.env.DATABASE_URL) {
+  if (!process.env.DATABASE_URL && !process.env.DATABASE_PRIVATE_URL) {
     return { products: [], totalCount: 0, totalPages: 0, currentPage: page };
   }
 
@@ -120,7 +120,7 @@ export async function getProducts(params: GetProductsParams = {}) {
 }
 
 export async function getProductBySlug(slug: string) {
-  if (!process.env.DATABASE_URL) return null;
+  if (!process.env.DATABASE_URL && !process.env.DATABASE_PRIVATE_URL) return null;
   try {
     return await prisma.product.findUnique({
       where: { slug },
@@ -159,7 +159,7 @@ export async function getProductById(id: string) {
 }
 
 export async function getCategories() {
-  if (!process.env.DATABASE_URL) return [];
+  if (!process.env.DATABASE_URL && !process.env.DATABASE_PRIVATE_URL) return [];
   try {
     return await prisma.category.findMany({
       where: { isActive: true },
@@ -185,7 +185,7 @@ export async function getCategories() {
 }
 
 export async function getCategoryBySlug(slug: string) {
-  if (!process.env.DATABASE_URL) return null;
+  if (!process.env.DATABASE_URL && !process.env.DATABASE_PRIVATE_URL) return null;
   try {
     return await prisma.category.findUnique({
       where: { slug },
